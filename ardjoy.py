@@ -23,8 +23,6 @@ DONE:
     - setup the Github thing
 """
 import time
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import numpy as np
 ##
 pi=np.pi
@@ -45,7 +43,11 @@ channels = [0]
 channel={'I':0,'J':1,'Z':2,'X':3,'Y':4,'R':5,'L':6}
 
 ## graphics shizzle
-
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import matplotlib.animation.FuncAnimation as FuncAnimation
+mpl.use('TkAgg')
 
 def startcom():
     global ser, serOpen
@@ -114,28 +116,41 @@ def printstick(stickdata):
     print(f'Z: {stickdata[channel["Z"]]} ',end='')
     print(f'L: {stickdata[channel["L"]]} ',end='')
     print(f'R: {stickdata[channel["R"]]}')
+    print(f'\033[A\033[A')
 
-def actors():
+def makelines(): #we start out with flat lines
     linelength = 100
-    i = np.zeroes(linelength)
-    j = np.zeroes(linelength)
-    x = np.zeroes(linelength)
-    y = np.zeroes(linelength)
-    z = np.zeroes(linelength)
-    l = np.zeroes(linelength)
+    i = np.zeros(linelength)
+    j = np.zeros(linelength)
+    x = np.zeros(linelength)
+    y = np.zeros(linelength)
+    z = np.zeros(linelength)
+    l = np.zeros(linelength)
 
-    lines = []
+    return [i,j,x,y,z,l]
 
-    for i in range(len(data))
 
 def createfig():
-    fig = plt.figure("An excellent plot")
+    lines=makelines()
+    actors={}
+    fig = plt.figure("An excellent plot")#windowmanager title
     ax = fig.add_subplot(label="A set of axes")#this label doesn't show in the plot?
-    ax.set_title("title to the axes")
+    ax.set_title("title to the axes")#This is part of the plot (what you'd see in your report)
     ax.set_xlabel('x-axis')
     ax.set_ylabel('y-axis')
-    return [fig,ax]
 
+    for n,line in enumerate(lines):
+        actors[line]={ax.plot(np.linspace(0,10,len(line)))}
+        print(f'n: {actor[n]}')
+    return [fig,ax,actor]
+
+def figupdate():
+    #getdata
+    stickdata = readstick()
+    actors[0].ydata[1,:] = actors[0].ydata[:-1].append(stickdata[channel['I']])
+    #clear axis
+    ax.cla()
+    ax.plot(actor[0])
 
 def main():
     global run, ser
@@ -143,9 +158,12 @@ def main():
     if (ser == None):
         startcom()
     sw=None
-    [fig,ax]=createfig()
+    [fig,ax,actor]=createfig()
+    #plt.show(block=False)
+    plt.pause(0.0001)
 
-    while run:
+    if 0:
+      while run:
         stickdata = readstick()
         #printstick(stickdata)
         if sw==None:
@@ -156,9 +174,10 @@ def main():
         if sw==360 and stickdata[channel['R']]<sw-350:
             run=False
             #print(f'stopping now, because turn to left?')
-        printstick(stickdata)
+        #printstick(stickdata)
 
 
+    ani = FuncAnimation(fig,figupdate,interval=100)
 
 if __name__ == '__main__':
     main()
