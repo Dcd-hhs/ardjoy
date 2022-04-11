@@ -24,6 +24,7 @@ DONE:
 """
 import time
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import numpy as np
 ##
 pi=np.pi
@@ -42,6 +43,9 @@ ser = None
 serOpen = False
 channels = [0]
 channel={'I':0,'J':1,'Z':2,'X':3,'Y':4,'R':5,'L':6}
+
+## graphics shizzle
+
 
 def startcom():
     global ser, serOpen
@@ -101,30 +105,60 @@ def readstick():
         print('key invalid')
         return channels #give old values
 
+def printstick(stickdata):
+    #print(f'this is data from the stick: {stickdata}')
+    print(f'I: {1023-stickdata[channel["I"]]} ',end='')
+    print(f'J: {stickdata[channel["J"]]} ',end='')
+    print(f'X: {1023-stickdata[channel["X"]]} ',end='')
+    print(f'Y: {stickdata[channel["Y"]]} ',end='')
+    print(f'Z: {stickdata[channel["Z"]]} ',end='')
+    print(f'L: {stickdata[channel["L"]]} ',end='')
+    print(f'R: {stickdata[channel["R"]]}')
+
+def actors():
+    linelength = 100
+    i = np.zeroes(linelength)
+    j = np.zeroes(linelength)
+    x = np.zeroes(linelength)
+    y = np.zeroes(linelength)
+    z = np.zeroes(linelength)
+    l = np.zeroes(linelength)
+
+    lines = []
+
+    for i in range(len(data))
+
+def createfig():
+    fig = plt.figure("An excellent plot")
+    ax = fig.add_subplot(label="A set of axes")#this label doesn't show in the plot?
+    ax.set_title("title to the axes")
+    ax.set_xlabel('x-axis')
+    ax.set_ylabel('y-axis')
+    return [fig,ax]
+
+
 def main():
     global run, ser
     run = 1
     if (ser == None):
         startcom()
     sw=None
+    [fig,ax]=createfig()
+
     while run:
         stickdata = readstick()
-        #print(stickdata)
+        #printstick(stickdata)
         if sw==None:
            sw=stickdata[channel['R']]
-        if sw<stickdata[channel['R']]:
-            print(f'Stopping now, because turn to right')
+        if sw<stickdata[channel['R']]-350:
+            #print(f'Stopping now, because turn to right')
             run=False
-        if sw==360 and stickdata[channel['R']]<sw:
+        if sw==360 and stickdata[channel['R']]<sw-350:
             run=False
-            print(f'stopping now, because turn to left?')
-        #print(f'this is data from the stick: {stickdata}')
-        print(f'I: {1023-stickdata[channel["I"]]} ',end='')
-        print(f'J: {stickdata[channel["J"]]} ',end='')
-        print(f'X: {1023-stickdata[channel["X"]]} ',end='')
-        print(f'Y: {stickdata[channel["Y"]]} ',end='')
-        print(f'Z: {stickdata[channel["Z"]]} ',end='')
-        print(f'L: {stickdata[channel["L"]]}')
+            #print(f'stopping now, because turn to left?')
+        printstick(stickdata)
+
+
 
 if __name__ == '__main__':
     main()
