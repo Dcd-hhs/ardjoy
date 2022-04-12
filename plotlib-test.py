@@ -1,36 +1,18 @@
 #!/usr/bin/python3
 """
-Author: D.C.Doedens
-Date: 20220410
-Goal:
-    Use input from joystick to generate and plot data in matplotlib
-    Both this programme and the programme on the joystick use the ibus protocol
-    based on/ inspired by VJoySerialFeeder
+    inspired by
+    https://stackoverflow.com/questions/54557530/matplotlib-real-time-plotting-in-python
+    user: clockelliptic
 
-TODO:
-    - Get the serial stream of data
-      - Connect to serial
-      - Receive data
-        - decode data
-    - Plot the joydata in a 'live' plot with matplotlib
-      - get matplotlib to work with live data
-        - stuff..
-    - Genereate live data through another source, and modify the plot settings
-      using the joydata
-    - change to gitlab?
-
-DONE:
-    - setup the Github thing
 """
-import time
+
+from time import sleep
+import matplotlib.pyplot as plt
 import numpy as np
-##
-pi=np.pi
-tau = 2*pi
-
-## global variable handler, whether you like it or not
-run = 0
-
+import matplotlib as mpl
+print(f"rcparams says: {mpl.rcParams['backend']}")
+mpl.use("TkAgg") #interactive mode can be on now. plt.ion()
+#import serial
 ## Communication with arduino
 import serial
 import serial.tools.list_ports
@@ -42,12 +24,29 @@ serOpen = False
 channels = [0]
 channel={'I':0,'J':1,'Z':2,'X':3,'Y':4,'R':5,'L':6}
 
-## graphics shizzle
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-#import matplotlib.animation as animation
-#import matplotlib.animation.FuncAnimation as FuncAnimation
-mpl.use('TkAgg')
+# specify how many points to show on the x-axis
+xwidth = 10
+
+# use real-time plotting
+plt.ion()
+
+# setup each of the subplots
+ax = []
+fig, ax[0:7] = plt.subplots(7, 1, sharex=False, sharey=False)
+
+# set up each of the lines/curves to be plotted on their respective subplots
+lines = {index: Axes_object.plot([],[])[0] for index, Axes_object in enumerate(ax)}
+
+# cache background of each plot for fast re-drawing, AKA Blit
+ax_bgs = {index: fig.canvas.copy_from_bbox(Axes_object.bbox)
+          for index, Axes_object in enumerate(ax)}
+
+# initial drawing of the canvas
+fig.canvas.draw()
+plt.show()
+# setup variable to contain incoming serial port data
+y_data = {index:[0] for index in range(len(ax))}
+x_data = [-1]
 
 def startcom():
     global ser, serOpen
@@ -55,7 +54,7 @@ def startcom():
         try:
             ser=serial.Serial('/dev/'+portlist[1].name,115200, timeout = 1)
             #ser=serial.Serial('COM3',115200, timeout = 1)
-            time.sleep(1)
+            sleep(1)
             print("Go ahead make my day (establishing communications)")
             serOpen = True
             print("Connected on: ", ser.name)
@@ -115,62 +114,52 @@ def printstick(stickdata):
     print(f'L: {stickdata[channel["L"]]} ',end='')
     print(f'R: {stickdata[channel["R"]]}')
     print(f'\033[A\033[A')
-def init_lines():
-    linelength = 100
-    i = np.zeros(linelength)
-    j = np.zeros(linelength)
-    x = np.zeros(linelength)
-    y = np.zeros(linelength)
-    z = np.zeros(linelength)
-    l = np.zeros(linelength)
-    return [i,j,x,y,z,l]
-def update_lines(lines):
-    newdata=readstick()
-    print(newdata[1])
-    print(lines[1])
-    for index in range(len(lines)):
-        #line = line[:-1].append(newdata[index])
-        print(index,lines[index])
-        ydata=lines[index][0].get_ydata()
-        #lines[index][0].set_data(lines[index][0].xdata, lines[index][0].ydata[:-1].append(newdata[index]))
-        print(ydata,newdata)
-        #lines[index][0].set_ydata([ydata[:-1] +newdata[index]])
-    #return lines
 
 
-def main():
-    global run, ser
-    run = 1
-    if (ser == None):
-        startcom()
-    sw=None
+def update_data(new_byte, ):
+    print(new_byte)
+    x_data.append(x_data[-1] + 1)
+    for i, val in enumerate(new_byte):
+        y_data[i].append(val)
 
-    fig,ax = plt.subplots()
-    #plt.show(block=False)
-    plt.pause(0.0001)
+def update_graph():
+    for i in y_data.keys():
+        # update each line object
+        lines[i].set_data(x_data, y_data[i])
 
-    lines= {index:ax.plot(np.linspace(0,10,len(line)),line) for index,line in enumerate(init_lines())}
-    for index,line in enumerate(lines):
-        print(f'line {index}: {lines[index]}')
-    ax_bgs= fig.canvas.copy_from_bbox(ax.bbox)
+        # try to set new axes limits
+        try:
+            #print('I do!')
+            ax[i].set_xlim([x_data[-1] - xwidth, x_data[-1]])
+            if max(y_data[i][-xwidth:]) > ax[i].get_ylim()[1]:
+                new_min = min(y_data[i][-xwidth:])
+                new_max = max(y_data[i][-xwidth:])
+                ax[i].set_ylim([new_min-abs(new_min)*0.2, new_max+abs(new_max)*0.2])
+        except:
+            continue
+
     fig.canvas.draw()
 
 
-    while run:
-        stickdata = readstick()
-        #printstick(stickdata)
-        if sw==None:
+#ser = serial.Serial('COM3', 115200) # Establish the connection on a specific port
+#byte=ser.readline() #first line not to be plotted
+if (ser == None):
+    startcom()
+sw=None
+run = 1
+while run:
+    # ser.write(b'9') # send a command to the arduino
+    # byte=ser.read(7) #read 7 bytes back
+    stickdata = readstick()
+    if sw==None:
            sw=stickdata[channel['R']]
-        if sw<stickdata[channel['R']]-350:
-            #print(f'Stopping now, because turn to right')
-            run=False
-        if sw==360 and stickdata[channel['R']]<sw-350:
-            run=False
-            #print(f'stopping now, because turn to left?')
-        #printstick(stickdata)
-        fig.canvas.draw()
-        update_lines(lines)
-
-
-if __name__ == '__main__':
-    main()
+    if sw<stickdata[channel['R']]-350:
+        #print(f'Stopping now, because turn to right')
+        run=False
+    if sw==360 and stickdata[channel['R']]<sw-350:
+        run=False
+    byte = np.random.rand(7)
+    printstick(stickdata)
+    update_data(stickdata)
+    update_graph()
+    #print(x_data,y_data)
