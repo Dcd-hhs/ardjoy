@@ -43,7 +43,8 @@ ax_bgs = {index: fig.canvas.copy_from_bbox(Axes_object.bbox)
 
 # initial drawing of the canvas
 fig.canvas.draw()
-plt.show()
+
+
 # setup variable to contain incoming serial port data
 y_data = {index:[0] for index in range(len(ax))}
 x_data = [-1]
@@ -117,7 +118,6 @@ def printstick(stickdata):
 
 
 def update_data(new_byte, ):
-    print(new_byte)
     x_data.append(x_data[-1] + 1)
     for i, val in enumerate(new_byte):
         y_data[i].append(val)
@@ -137,7 +137,7 @@ def update_graph():
                 ax[i].set_ylim([new_min-abs(new_min)*0.2, new_max+abs(new_max)*0.2])
         except:
             continue
-
+    plt.show()
     fig.canvas.draw()
 
 
@@ -159,7 +159,7 @@ while run:
     if sw==360 and stickdata[channel['R']]<sw-350:
         run=False
     byte = np.random.rand(7)
-    printstick(stickdata)
+    #printstick(stickdata)
     update_data(stickdata)
     update_graph()
     #print(x_data,y_data)
