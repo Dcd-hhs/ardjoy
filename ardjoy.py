@@ -37,6 +37,8 @@ import serial.tools.list_ports
 portlist = serial.tools.list_ports.comports()
 for port in portlist:
     print(f'This should be a port: {port.name}')
+    
+print('portlist: {portlist}')
 ser = None
 serOpen = False
 channels = [0]
@@ -53,8 +55,8 @@ def startcom():
     global ser, serOpen
     if ser == None:
         try:
-            ser=serial.Serial('/dev/'+portlist[1].name,115200, timeout = 1)
-            #ser=serial.Serial('COM3',115200, timeout = 1)
+            #ser=serial.Serial('/dev/'+portlist[1].name,115200, timeout = 1)
+            ser=serial.Serial('COM5',115200, timeout = 1)
             time.sleep(1)
             print("Go ahead make my day (establishing communications)")
             serOpen = True

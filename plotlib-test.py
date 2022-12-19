@@ -6,12 +6,14 @@
 
 """
 
+import time
 from time import sleep
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib as mpl
 print(f"rcparams says: {mpl.rcParams['backend']}")
-mpl.use("TkAgg") #interactive mode can be on now. plt.ion()
+#mpl.use("TkAgg") #interactive mode can be on now. plt.ion()
+#mpl.use("Qt4Agg")
 #import serial
 ## Communication with arduino
 import serial
@@ -33,7 +35,6 @@ plt.ion()
 # setup each of the subplots
 ax = []
 fig, ax[0:7] = plt.subplots(7, 1, sharex=False, sharey=False)
-
 # set up each of the lines/curves to be plotted on their respective subplots
 lines = {index: Axes_object.plot([],[])[0] for index, Axes_object in enumerate(ax)}
 
@@ -43,7 +44,8 @@ ax_bgs = {index: fig.canvas.copy_from_bbox(Axes_object.bbox)
 
 # initial drawing of the canvas
 fig.canvas.draw()
-
+plt.show()
+plt.draw_all()
 
 # setup variable to contain incoming serial port data
 y_data = {index:[0] for index in range(len(ax))}
@@ -53,8 +55,8 @@ def startcom():
     global ser, serOpen
     if ser == None:
         try:
-            ser=serial.Serial('/dev/'+portlist[1].name,115200, timeout = 1)
-            #ser=serial.Serial('COM3',115200, timeout = 1)
+            #ser=serial.Serial('/dev/'+portlist[1].name,115200, timeout = 1)
+            ser=serial.Serial('COM5',115200, timeout = 1)
             sleep(1)
             print("Go ahead make my day (establishing communications)")
             serOpen = True
@@ -62,12 +64,14 @@ def startcom():
         except serial.SerialException as e:
             print("Then this happened:\n{}".format(e))
             print(ser.name)
+
 def endcom():
     global ser, serOpen
     print("See you later alligator")
     if not ser == None:
        ser.close()
        serOpen = False
+       
 def readstick():
     global ser, serOpen
     global channels
@@ -101,7 +105,7 @@ def readstick():
                 #print([i for i in range(0,dataPart - 2, 2)])
                 #print(f'this is the data from all channels: {channels}')
                 return channels        # give new values
-            #print('checksum failed')
+            print('checksum failed')
             #print(buffer)
         print('key invalid')
         return channels #give old values
@@ -148,6 +152,7 @@ if (ser == None):
 sw=None
 run = 1
 while run:
+    now = time.time()
     # ser.write(b'9') # send a command to the arduino
     # byte=ser.read(7) #read 7 bytes back
     stickdata = readstick()
@@ -159,7 +164,8 @@ while run:
     if sw==360 and stickdata[channel['R']]<sw-350:
         run=False
     byte = np.random.rand(7)
-    #printstick(stickdata)
+    printstick(stickdata)
     update_data(stickdata)
     update_graph()
     #print(x_data,y_data)
+    print(f'Update freq: {int(10/(time.time()-now))/10}  ', end='')
